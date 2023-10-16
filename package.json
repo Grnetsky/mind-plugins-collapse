@@ -1,0 +1,17 @@
+{
+  "name": "mind-plugins-collapse",
+  "version": "1.1.4",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@meta2d/core": "^1.0.32",
+    "mind-diagram": "1.1.4",
+    "mind-plugins-core": "1.1.4"
+  }
+}
