@@ -1,5 +1,6 @@
-import {setLifeCycleFunc} from "mind-diagram"
+import {setLifeCycleFunc,getPlugin} from "mind-diagram"
 import {CollapseButton} from "./src/dom";
+import {toolBoxPlugin} from "../mind-plugins-core";
 export let CollapseChildPlugin = {
   name:'hideChildren',
   status: false,
@@ -12,8 +13,11 @@ export let CollapseChildPlugin = {
         });
         CollapseChildPlugin.init(data);
       }
+      this.extend(meta2d.findOne(data.mind.preNodeId))
+      toolBoxPlugin.update(meta2d.findOne(data.mind.rootId))
     });
-            // 跟随移动
+
+    // 跟随移动
   },
 
   // 插件卸载执行函数
@@ -78,7 +82,7 @@ export let CollapseChildPlugin = {
     return allCount;
   },
   // 展开函数
-  extend(pen){
+  extend(pen,recursion = true){
     pen.mind.childrenVisible = true;
     let children = pen.mind.children;
     if(!children || children.length === 0)return;
@@ -89,7 +93,7 @@ export let CollapseChildPlugin = {
       child.mind.visible = true;
       let line = child.connectedLines[0];
       (window).meta2d.setVisible((window).meta2d.findOne(line.lineId),true,false);
-      CollapseChildPlugin.extend(child);
+      if(recursion)CollapseChildPlugin.extend(child);
     }
   }
 };
