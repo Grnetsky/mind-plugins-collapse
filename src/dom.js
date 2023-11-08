@@ -30,11 +30,11 @@ export class CollapseButton {
             this.mind.singleton.collapseButton.setNumber(count);
 
             // 从当前节点处更新
-            toolBoxPlugin.update(meta2d.findOne(this.id));
+            toolBoxPlugin.update(meta2d.findOne(this.mind.rootId));
         }else{
             CollapseChildPlugin.extend(this);
             this.mind.singleton.collapseButton.setIcon();
-            toolBoxPlugin.update(meta2d.findOne(this.id));
+            toolBoxPlugin.update(meta2d.findOne(this.mind.rootId));
         }
     }
     setIcon(){

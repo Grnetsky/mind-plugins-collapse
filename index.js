@@ -1,6 +1,6 @@
-import {setLifeCycleFunc,getPlugin} from "mind-diagram"
-import {CollapseButton} from "./src/dom";
-import {toolBoxPlugin} from "../mind-plugins-core";
+import { setLifeCycleFunc } from "mind-diagram"
+import { CollapseButton } from "./src/dom";
+import { toolBoxPlugin } from "../mind-plugins-core";
 export let CollapseChildPlugin = {
   name:'hideChildren',
   status: false,
@@ -48,7 +48,7 @@ export let CollapseChildPlugin = {
     });
 
     setLifeCycleFunc(target,'onDestroy',(targetPen)=>{
-        targetPen.mind.singleton.collapseButton.hide();
+        targetPen.mind.singleton.collapseButton?.hide();
         targetPen.mind.singleton.collapseButton = undefined;
     });
 
@@ -68,7 +68,7 @@ export let CollapseChildPlugin = {
     let allCount = children.length;
     if(!children || children.length === 0)return 0;
     for(let i = 0 ; i< children.length;i++){
-      let child = children[i];
+      let child = meta2d.store.pens[children[i]];
       // 设置子节点的可见性为false
       child.mind.visible = false;
 
@@ -89,7 +89,7 @@ export let CollapseChildPlugin = {
 
     // 让所有子集都展开
     for(let i = 0 ; i< children.length;i++){
-      let child = children[i];
+      let child = meta2d.store.pens[children[i]];
       child.mind.visible = true;
       let line = child.connectedLines[0];
       (window).meta2d.setVisible((window).meta2d.findOne(line.lineId),true,false);
