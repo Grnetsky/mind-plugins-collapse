@@ -16,20 +16,22 @@ export let CollapseChildPlugin = {
                 this.extend(pen)
             }
             data = newPen
-            data.mind.collapse = {};
-            if(!data.mind.singleton?.collapseButton){
-              data.mind.singleton = {};
-              data.mind.singleton.collapseButton = new CollapseButton((window).meta2d.canvas.externalElements.parentElement,{
-              });
-              CollapseChildPlugin.init(data);
-            }
+            this.init(data)
         });
+        window.MindManager.pluginsMessageChannels.subscribe('open',(pen)=>{
+            this.init(pen)
+        })
         },
 
     // 插件卸载执行函数
     uninstall(){
     },
     init(pen){
+        pen.mind.collapse = {};
+        pen.mind.singleton = {};
+        pen.mind.singleton.collapseButton = new CollapseButton((window).meta2d.canvas.externalElements.parentElement,{
+        });
+
         pen.mind.childrenVisible = true;
         pen.mind.allChildrenCount = 0;
         pen.mind.singleton.collapseButton.bindPen(pen.id);
@@ -58,6 +60,7 @@ export let CollapseChildPlugin = {
 
         setLifeCycleFunc(target,'onDestroy',(targetPen)=>{
             targetPen.mind.singleton.collapseButton?.hide();
+            targetPen.mind.singleton.collapseButton.destroy()
             targetPen.mind.singleton.collapseButton = undefined;
         });
 
@@ -110,10 +113,12 @@ export let CollapseChildPlugin = {
         let children = pen.mind.children || [];
         children.forEach(i=>{
             let child = meta2d.store.pens[i];
-            if(child && !child.mind.childrenVisible && !status){
+            if(child && child.mind.childrenVisible && !status && !pen.mind.childrenVisible){
                 child.mind.singleton.collapseButton?.hide();
-            }else if(child && !child.mind.childrenVisible && status){
+            }else if(child && !child.mind.childrenVisible && pen.mind.childrenVisible && child.mind.visible && status){
                 child.mind.singleton.collapseButton?.show();
+            }else {
+                child.mind.singleton.collapseButton?.hide();
             }
             if(recursion)this._controlChildButton(child,status,true)
         })
@@ -152,9 +157,10 @@ export let CollapseChildPlugin = {
         children.forEach(i=>{
             let child = meta2d.store.pens[i]
             if(!child)return
+            if(!pen.mind.childrenVisible)return;
             child.mind.visible = pen.mind.childrenVisible
             let line = child.connectedLines[0];
-            (window).meta2d.setVisible((window).meta2d.findOne(line.lineId),pen.mind.childrenVisible,false);
+            meta2d.setVisible(meta2d.findOne(line.lineId),pen.mind.childrenVisible,false);
             meta2d.setVisible(child,pen.mind.childrenVisible,false)
             if(recursion)this._setExtend(child,true)
         })

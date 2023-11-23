@@ -49,6 +49,9 @@ export class CollapseButton {
     setNumber(_number){
         this.box.innerHTML = _number;
     }
+    destroy(){
+        this.box.parentNode.removeChild(this.box)
+    }
     hide(){
         this.box.style.visibility = 'hidden';
     }
