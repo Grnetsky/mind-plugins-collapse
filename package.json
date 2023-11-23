@@ -1,7 +1,7 @@
 {
   "name": "mind-plugins-collapse",
-  "version": "1.1.4",
-  "description": "",
+  "version": "0.0.4",
+  "description": "乐吾乐脑图组件库子级显示隐藏插件",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -10,10 +10,8 @@
   "author": "",
   "license": "ISC",
   "peerDependencies": {
-    "@meta2d/core": "^1.0.32"
-  },
-  "dependencies": {
-    "mind-diagram": "file:C:\\Users\\Andy\\Desktop\\大屏\\meta2d.js\\dist\\mind-diagram",
-    "mind-plugins-core": "file:C:\\Users\\Andy\\WebstormProjects\\mind-plugins-core"
+    "@meta2d/core": "^1.0.32",
+    "mind-diagram": "^1.2.0",
+    "mind-plugins-core": "^1.0.22"
   }
 }
