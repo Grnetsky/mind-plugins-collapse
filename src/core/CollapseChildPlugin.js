@@ -1,7 +1,13 @@
 import { CollapseButton } from "../dom";
-import {setLifeCycleFunc } from '@meta2d/core'
+import {deepClone, setLifeCycleFunc} from '@meta2d/core'
 import {error} from "../utils";
 
+let CONFIGS ={
+    'style':'setStyle',
+    'collapseIcon':'setCollapseIcon',
+    'extendIcon':'setExtendIcon'
+}
+// 重做后元素被移除，深拷贝报错
 let addCallback = null
 export let _toolBoxPlugin = null
 export let collapseChildPlugin = {
@@ -12,28 +18,53 @@ export let collapseChildPlugin = {
     // 安装插件
     install:(()=>{
         let isInit = false
-        return (pen,args)=>{
+        let optionMap = new Map()
+
+        return (pen,options)=>{
             if(!isInit){
                 // 获取mindBox插件对象
                 if(!_toolBoxPlugin)_toolBoxPlugin = meta2d.penPlugins.find(i=>i.name === 'mindBox')
                 if(!_toolBoxPlugin){
-                    error('no find plugin-mind-core Plugin')
+                    error('not find plugin-mind-core Plugin')
                     return
                 }
-                // 监听添加图元事件
-                // meta2d.on('plugin:addNode',(data)=>{
-                //     let {pen,newPen} = data
-                //     if(pen.mind.children.length >= 1 && pen.mind.childrenVisible === false){
-                //         collapseChildPlugin.extend(pen)
-                //     }
-                //     data = newPen
-                //     collapseChildPlugin.init(data)
-                // })
-                meta2d.on('plugin:open',(pen)=>{
+
+                meta2d.on('undo',(e)=>{
+                    let { initPens } = e
+                    initPens?.forEach(aPen=>{
+                        let pen = meta2d.findOne(aPen.id)
+                        if(isCollapsePen(pen)){
+                            collapseChildPlugin.init(pen)
+                            _toolBoxPlugin.update(meta2d.findOne(pen.mind.rootId))
+                        }
+                    })
+                })
+
+                meta2d.on('redo',(e)=>{
+                    let { pens } = e
+                    pens?.forEach(aPen=>{
+                        let pen = meta2d.findOne(aPen.id)
+                        if(isCollapsePen(pen)){
+                            collapseChildPlugin.init(pen)
+                            _toolBoxPlugin.update(meta2d.findOne(pen.mind.rootId))
+                        }
+                    })
+                })
+                // 打开图纸时触发
+                meta2d.on('plugin:mindBox:open',(pen)=>{
                     // TODO 打开图纸还未处理 -> 未处理对指定图元的
-                    if(collapseChildPlugin.target.includes(pen.name) || collapseChildPlugin.target.includes(pen.tag) || pen.mind.collapse){
+                    let t = meta2d.findOne(pen.mind.rootId)
+                    if(collapseChildPlugin.target.includes(t.name) || collapseChildPlugin.target.includes(t.tag) || pen.mind.collapse  && pen.mind.type==='node' ){
                         collapseChildPlugin.init(pen)
                     }
+                })
+                // 添加脑图梗节点
+                meta2d.on('plugin:mindBox:addRoot',(pen)=>{
+                    if(isCollapsePen(pen)){
+                        collapseChildPlugin.init(pen);
+                        pen.mind.collapse.config = optionMap.get(pen.tag) || optionMap.get(pen.name);
+                    }
+                    // 将配置写入根图元
                 })
                 isInit = true
             }
@@ -46,11 +77,19 @@ export let collapseChildPlugin = {
                 target = pen.tag
             }else if(pen.pen){
                 target = pen
+            }else {
+                return;
             }
-            if(collapseChildPlugin.target.includes(target))return;
-            collapseChildPlugin.target.push(target)
+            if(typeof target === 'object'){
+                if(collapseChildPlugin.target.includes(target.id))return;
+                collapseChildPlugin.target.push(target.id)
+            }else {
+                if(collapseChildPlugin.target.includes(target))return;
+                collapseChildPlugin.target.push(target)
+            }
+            optionMap.set(target,deepClone(options || {}))
             if(addCallback) {
-                meta2d.off('plugin:addNode', addCallback)
+                meta2d.off('plugin:mindBox:addNode', addCallback)
             }
             // 绑定为图元
             if(typeof target === 'object' && target.mind){
@@ -58,17 +97,18 @@ export let collapseChildPlugin = {
             }else {
                 // 绑定为tag或者name
                 addCallback = (data)=>{
-                    let {pen,newPen} = data
-                    if(collapseChildPlugin.target.includes(newPen.tag) ||collapseChildPlugin.target.includes(newPen.name) ){
+                    let { pen,newPen } = data
+                    // pen.mind.mindboxOption = optionMap.get(.tag || pens[0].name);
+                    if(isCollapsePen(newPen)){
                         if(pen.mind.children.length >= 1 && pen.mind.childrenVisible === false){
                             collapseChildPlugin.extend(pen)
                         }
                         collapseChildPlugin.init(newPen)
+                        collapseChildPlugin.loadOptions(newPen)
                     }
                 }
-                addCallback && meta2d.on('plugin:addNode',addCallback)
+                addCallback && meta2d.on('plugin:mindBox:addNode',addCallback)
             }
-
         }
         })(),
 
@@ -76,8 +116,9 @@ export let collapseChildPlugin = {
     uninstall(pen){
 
     },
-    init(pen){
-        pen.mind.collapse = {};
+    init(pen,config){
+        pen.mind.collapse = {
+        };
         pen.mind.singleton = {};
         pen.mind.singleton.collapseButton = new CollapseButton((window).meta2d.canvas.externalElements.parentElement,{
         });
@@ -89,7 +130,23 @@ export let collapseChildPlugin = {
         collapseChildPlugin.combineLifeCycle(pen);
         pen.mind.singleton.collapseButton.hide();
     },
+    __loadDefault(pen){
 
+    },
+    loadOptions(pen){
+        // debugger
+        if(isCollapsePen(pen)){
+            let root = meta2d.findOne(pen.mind.rootId)
+            let options = root.mind.collapse?.config
+            if(typeof options !=='object')return
+            this.__loadDefault()
+            Object.keys(options).forEach(key=>{
+                if(key in CONFIGS){
+                    pen.mind.singleton.collapseButton[CONFIGS[key]](options[key]);
+                }
+            })
+        }
+    },
     // 监听生命周期
     combineLifeCycle(target){
         setLifeCycleFunc(target,'onMouseEnter',(targetPen)=>{
@@ -97,10 +154,14 @@ export let collapseChildPlugin = {
                 targetPen.mind.singleton.collapseButton.translatePosition(targetPen);
                 targetPen.mind.singleton.collapseButton.show();
                 if(targetPen.mind.childrenVisible){
-                    targetPen.mind.singleton.collapseButton.setIcon()
+                    targetPen.mind.singleton.collapseButton.setCollapseIcon()
                 }
             }
         });
+
+        setLifeCycleFunc(target,'onMouseUp',(target)=>{
+            collapseChildPlugin.loadOptions(target)
+        })
 
         setLifeCycleFunc(target,'onMouseLeave',(targetPen)=>{
             if(targetPen.mind.childrenVisible){
@@ -135,6 +196,7 @@ export let collapseChildPlugin = {
         })
         return  num
     },
+
     // 折叠函数
     collapse(pen){
         toolbox.hide()
@@ -208,4 +270,9 @@ export function debounce(func, wait) {
             func.apply(context, args);
         }, wait);
     };
+}
+
+function isCollapsePen(pen){
+    let root = meta2d.findOne(pen.mind?.rootId)
+    return pen.mind.type === 'node' && (collapseChildPlugin.target.includes(root.id) || collapseChildPlugin.target.includes(root.name) || collapseChildPlugin.target.includes(root.tag))
 }
